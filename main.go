@@ -1,7 +1,16 @@
 package main
 
-import "github.com/DCP-DCT/DCP"
+import (
+	"fmt"
+	"github.com/DCP-DCT/DCP"
+)
 
 func main() {
-	nodes := make([]DCP.CtNode, 100)
+	nodes := make([]DCP.CtNode, 10)
+
+	for _, node := range nodes {
+		node.Co.KeyGen()
+		node.Ids = GenerateIdTable(5)
+		fmt.Println(node)
+	}
 }
