@@ -1,6 +1,6 @@
-package dcpSimulations
+package main
 
-import "DCP"
+import "github.com/DCP-DCT/DCP"
 
 func main() {
 	nodes := make([]DCP.CtNode, 100)
