@@ -19,8 +19,9 @@ func benchmarkEncryption(numberOfNodes int) {
 			Id:             uuid.New(),
 			Co:             &DCP.CalculationObjectPaillier{},
 			Ids:            GenerateIdTable(rand.Intn(25)),
-			ReachableNodes: nil,
+			ReachableNodes: make(map[chan *DCP.CalculationObjectPaillier]struct{}),
 			Channel:        make(chan *DCP.CalculationObjectPaillier),
+			HandledCoIds:   make(map[uuid.UUID]struct{}),
 		}
 		e := node.Co.KeyGen()
 		if e != nil {
@@ -32,16 +33,15 @@ func benchmarkEncryption(numberOfNodes int) {
 		nodes = append(nodes, node)
 	}
 
-	EstablishNodeRelationships(nodes)
-
 	initialNode := nodes[0]
+	EstablishNodeRelationships(nodes, initialNode)
 
 	e := DCP.InitRoutine(DCP.PrepareIdLenCalculation, initialNode)
 	if e != nil {
 		fmt.Println(e)
 	}
 
-	initialNode.Broadcast()
+	initialNode.Broadcast(nil)
 
 	fmt.Scanln()
 }

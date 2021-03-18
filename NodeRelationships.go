@@ -8,7 +8,7 @@ import (
 // EstablishNodeRelationships takes an array of CtNodes and
 // randomly sets the CtNode.ReachableNodes attribute on the
 // supplied nodes.
-func EstablishNodeRelationships(nodes []*DCP.CtNode) {
+func EstablishNodeRelationships(nodes []*DCP.CtNode, initialNode *DCP.CtNode) {
 	if len(nodes) < 2 {
 		return
 	}
@@ -28,9 +28,15 @@ func EstablishNodeRelationships(nodes []*DCP.CtNode) {
 			for {
 				it++
 				randomNodeIndex = rand.Intn(len(nodes))
-				if (!contains(current.ReachableNodes, nodes[randomNodeIndex].Channel)) && (current.Id != nodes[randomNodeIndex].Id) {
+
+				if _, exists := current.ReachableNodes[nodes[randomNodeIndex].Channel]; exists {
 					break
 				}
+
+				if current.Id != nodes[randomNodeIndex].Id {
+					break
+				}
+
 				if it > 10 {
 					break
 				}
@@ -48,8 +54,13 @@ func EstablishNodeRelationships(nodes []*DCP.CtNode) {
 				continue
 			}
 
-			current.ReachableNodes = append(current.ReachableNodes, reachableNode.Channel)
+			current.ReachableNodes[reachableNode.Channel] = struct{}{}
 		}
+	}
+
+	// ensure last node has a connection back to initial node
+	if _, exists := nodes[len(nodes) - 1].ReachableNodes[initialNode.Channel]; !exists {
+		nodes[len(nodes) - 1].ReachableNodes[initialNode.Channel] = struct{}{}
 	}
 }
 
