@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/DCP-DCT/DCP"
 	"math/rand"
+	"time"
 )
 
 // EstablishNodeRelationships takes an array of CtNodes and
@@ -13,23 +14,21 @@ func EstablishNodeRelationships(nodes []*DCP.CtNode, initialNode *DCP.CtNode) {
 		return
 	}
 
+	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < len(nodes); i++ {
 		current := nodes[i]
 
-		numbersToAdd := rand.Intn(len(nodes))
+		numbersToAdd := rand.Intn(len(nodes)-1) + 1
 
-		if numbersToAdd == len(nodes) {
-			numbersToAdd = numbersToAdd - 1
-		}
 		for j := 0; j < numbersToAdd; j++ {
 			// randomNodeIndex between {0, len(nodes)}
 			var randomNodeIndex int
 			it := 1
 			for {
 				it++
-				randomNodeIndex = rand.Intn(len(nodes))
+				randomNodeIndex = rand.Intn(len(nodes)-1) + 1
 
-				if _, exists := current.ReachableNodes[nodes[randomNodeIndex].Channel]; exists {
+				if _, exists := current.TransportLayer.ReachableNodes[nodes[randomNodeIndex].TransportLayer.DataCh]; exists {
 					break
 				}
 
@@ -54,22 +53,27 @@ func EstablishNodeRelationships(nodes []*DCP.CtNode, initialNode *DCP.CtNode) {
 				continue
 			}
 
-			current.ReachableNodes[reachableNode.Channel] = struct{}{}
+			current.TransportLayer.ReachableNodes[reachableNode.TransportLayer.DataCh] = reachableNode.TransportLayer.StopCh
 		}
 	}
 
 	// ensure last node has a connection back to initial node
-	if _, exists := nodes[len(nodes) - 1].ReachableNodes[initialNode.Channel]; !exists {
-		nodes[len(nodes) - 1].ReachableNodes[initialNode.Channel] = struct{}{}
+	if _, exists := nodes[len(nodes)-1].TransportLayer.ReachableNodes[initialNode.TransportLayer.DataCh]; !exists {
+		nodes[len(nodes)-1].TransportLayer.ReachableNodes[initialNode.TransportLayer.DataCh] = initialNode.TransportLayer.StopCh
 	}
 }
 
-func contains(source []chan *DCP.CalculationObjectPaillier, target chan *DCP.CalculationObjectPaillier) bool {
-	for _, c := range source {
-		if c == target {
-			return true
-		}
+func EstablishNodeRelationShipAllInRange(nodes []*DCP.CtNode) {
+	allTransportLayers := make(map[chan *[]byte]chan struct{})
+	for _, node := range nodes {
+		allTransportLayers[node.TransportLayer.DataCh] = node.TransportLayer.StopCh
 	}
 
-	return false
+	for _, node := range nodes {
+		for k, v := range allTransportLayers {
+			node.TransportLayer.ReachableNodes[k] = v
+		}
+
+		delete(node.TransportLayer.ReachableNodes, node.TransportLayer.DataCh)
+	}
 }
