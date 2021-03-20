@@ -17,11 +17,11 @@ func RandomCalculationProcessInitiator(node *DCP.CtNode, stop chan struct{}) {
 
 	for {
 		select {
-			case <- stop:
-				fmt.Println("Stop received, shutting down RandomCalculationProcessInitiator")
-				break
+		case <-stop:
+			fmt.Println("Stop received, shutting down RandomCalculationProcessInitiator")
+			return
 		default:
-			nr := rand.Intn(10 - 1) + 1
+			nr := rand.Intn(10-1) + 1
 
 			if nr == 5 {
 				e := DCP.InitRoutine(DCP.PrepareIdLenCalculation, node)

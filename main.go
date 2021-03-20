@@ -5,15 +5,18 @@ import (
 	"github.com/DCP-DCT/DCP"
 	"github.com/google/uuid"
 	"math/rand"
+	"os"
 	"time"
 )
 
 func main() {
 	//benchmarkEncryption(50)
 
-	runSimulation(25, 100 * time.Second)
+	temp := os.Stdout
+	os.Stdout = nil
+	runSimulation(10)
+	os.Stdout = temp
 }
-
 
 func createNodes(numberOfNodes int, config *DCP.CtNodeConfig) []*DCP.CtNode {
 	var nodes []*DCP.CtNode
@@ -21,17 +24,18 @@ func createNodes(numberOfNodes int, config *DCP.CtNodeConfig) []*DCP.CtNode {
 
 	for i := 0; i < numberOfNodes; i++ {
 		node := &DCP.CtNode{
-			Id:           uuid.New(),
-			Co:           &DCP.CalculationObjectPaillier{
-				TransactionId:        uuid.New(),
-				Counter:   0,
+			Id: uuid.New(),
+			Co: &DCP.CalculationObjectPaillier{
+				TransactionId: uuid.New(),
+				Counter:       0,
 			},
 			Ids:          GenerateIdTable(rand.Intn(25)),
 			HandledCoIds: make(map[uuid.UUID]struct{}),
 			TransportLayer: &DCP.ChannelTransport{
-				DataCh:         make(chan *[]byte),
-				StopCh:         make(chan struct{}),
-				ReachableNodes: make(map[chan *[]byte]chan struct{}),
+				DataCh:          make(chan *[]byte),
+				StopCh:          make(chan struct{}),
+				ReachableNodes:  make(map[chan *[]byte]chan struct{}),
+				SuppressLogging: config.SuppressLogging,
 			},
 			Config: config,
 		}
@@ -74,9 +78,10 @@ func benchmarkEncryption(numberOfNodes int) {
 	fmt.Printf("Initial Node Counter %d, Node Cipher %s\n", initialNode.Co.Counter, msg.String())
 }
 
-func runSimulation(numberOfNodes int, d time.Duration) {
+func runSimulation(numberOfNodes int) {
 	config := &DCP.CtNodeConfig{
-		NodeVisitDecryptThreshold: 5,
+		NodeVisitDecryptThreshold: 2,
+		SuppressLogging:           true,
 	}
 
 	nodes := createNodes(numberOfNodes, config)
@@ -86,14 +91,19 @@ func runSimulation(numberOfNodes int, d time.Duration) {
 		node.Listen()
 	}
 
-	LaunchMonitor(nodes)
+	done := make(chan struct{})
+	go LaunchMonitor(nodes, done)
 
 	stop := make(chan struct{})
-
 	for _, node := range nodes {
 		go RandomCalculationProcessInitiator(node, stop)
 	}
 
-	time.Sleep(d)
-	close(stop)
+	for {
+		select {
+		case <-done:
+			close(stop)
+			return
+		}
+	}
 }
