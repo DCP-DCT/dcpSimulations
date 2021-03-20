@@ -5,25 +5,19 @@ import (
 	"github.com/DCP-DCT/DCP"
 	"github.com/google/uuid"
 	"math/rand"
-	"os"
 	"time"
 )
 
 func main() {
-	benchmarkEncryption(50)
+	//benchmarkEncryption(50)
+
+	runSimulation(25, 100 * time.Second)
 }
 
-func benchmarkEncryption(numberOfNodes int) {
-	temp := os.Stdout
-	os.Stdout = nil
 
-
+func createNodes(numberOfNodes int, config *DCP.CtNodeConfig) []*DCP.CtNode {
 	var nodes []*DCP.CtNode
 	rand.Seed(time.Now().UnixNano())
-
-	config := &DCP.CtNodeConfig{
-		NodeVisitDecryptThreshold: 5,
-	}
 
 	for i := 0; i < numberOfNodes; i++ {
 		node := &DCP.CtNode{
@@ -47,8 +41,21 @@ func benchmarkEncryption(numberOfNodes int) {
 			break
 		}
 
-		node.Listen()
 		nodes = append(nodes, node)
+	}
+
+	return nodes
+}
+
+func benchmarkEncryption(numberOfNodes int) {
+	config := &DCP.CtNodeConfig{
+		NodeVisitDecryptThreshold: 5,
+	}
+
+	nodes := createNodes(numberOfNodes, config)
+
+	for _, node := range nodes {
+		node.Listen()
 	}
 
 	initialNode := nodes[0]
@@ -64,6 +71,29 @@ func benchmarkEncryption(numberOfNodes int) {
 	time.Sleep(10 * time.Second)
 	msg := initialNode.Co.Decrypt(initialNode.Co.Cipher)
 
-	os.Stdout = temp
 	fmt.Printf("Initial Node Counter %d, Node Cipher %s\n", initialNode.Co.Counter, msg.String())
+}
+
+func runSimulation(numberOfNodes int, d time.Duration) {
+	config := &DCP.CtNodeConfig{
+		NodeVisitDecryptThreshold: 5,
+	}
+
+	nodes := createNodes(numberOfNodes, config)
+	EstablishNodeRelationShipAllInRange(nodes)
+
+	for _, node := range nodes {
+		node.Listen()
+	}
+
+	LaunchMonitor(nodes)
+
+	stop := make(chan struct{})
+
+	for _, node := range nodes {
+		go RandomCalculationProcessInitiator(node, stop)
+	}
+
+	time.Sleep(d)
+	close(stop)
 }
