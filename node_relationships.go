@@ -64,16 +64,16 @@ func EstablishNodeRelationships(nodes []*DCP.CtNode, initialNode *DCP.CtNode) {
 }
 
 func EstablishNodeRelationShipAllInRange(nodes []*DCP.CtNode) {
-	allTransportLayers := make(map[chan *[]byte]chan struct{})
+	allTransportLayers := make(map[chan []byte]chan struct{})
 	for _, node := range nodes {
 		allTransportLayers[node.TransportLayer.DataCh] = node.TransportLayer.StopCh
 	}
 
 	for _, node := range nodes {
 		for k, v := range allTransportLayers {
-			node.TransportLayer.ReachableNodes[k] = v
+			if k != node.TransportLayer.DataCh {
+				node.TransportLayer.ReachableNodes[k] = v
+			}
 		}
-
-		delete(node.TransportLayer.ReachableNodes, node.TransportLayer.DataCh)
 	}
 }

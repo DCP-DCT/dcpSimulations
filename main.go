@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/DCP-DCT/DCP"
-	"github.com/google/uuid"
 	"math/rand"
 	"os"
 	"time"
@@ -14,7 +13,7 @@ func main() {
 
 	temp := os.Stdout
 	os.Stdout = nil
-	runSimulation(10)
+	runSimulation(9)
 	os.Stdout = temp
 }
 
@@ -23,22 +22,8 @@ func createNodes(numberOfNodes int, config *DCP.CtNodeConfig) []*DCP.CtNode {
 	rand.Seed(time.Now().UnixNano())
 
 	for i := 0; i < numberOfNodes; i++ {
-		node := &DCP.CtNode{
-			Id: uuid.New(),
-			Co: &DCP.CalculationObjectPaillier{
-				TransactionId: uuid.New(),
-				Counter:       0,
-			},
-			Ids:          GenerateIdTable(rand.Intn(25)),
-			HandledCoIds: make(map[uuid.UUID]struct{}),
-			TransportLayer: &DCP.ChannelTransport{
-				DataCh:          make(chan *[]byte),
-				StopCh:          make(chan struct{}),
-				ReachableNodes:  make(map[chan *[]byte]chan struct{}),
-				SuppressLogging: config.SuppressLogging,
-			},
-			Config: config,
-		}
+		node := DCP.NewCtNode(GenerateIdTable(rand.Intn(25)), config)
+
 		e := node.Co.KeyGen()
 		if e != nil {
 			fmt.Println(e.Error())
@@ -79,10 +64,12 @@ func benchmarkEncryption(numberOfNodes int) {
 }
 
 func runSimulation(numberOfNodes int) {
-	config := &DCP.CtNodeConfig{
-		NodeVisitDecryptThreshold: 2,
-		SuppressLogging:           true,
-	}
+	td := 10 * time.Millisecond
+
+	config := DCP.NewCtNodeConfig()
+	config.NodeVisitDecryptThreshold = 2
+	config.SuppressLogging = true
+	config.Throttle = &td
 
 	nodes := createNodes(numberOfNodes, config)
 	EstablishNodeRelationShipAllInRange(nodes)
@@ -91,17 +78,19 @@ func runSimulation(numberOfNodes int) {
 		node.Listen()
 	}
 
-	done := make(chan struct{})
-	go LaunchMonitor(nodes, done)
+	closeMonitor := make(chan struct{})
+	go LaunchMonitor(nodes, closeMonitor)
 
 	stop := make(chan struct{})
 	for _, node := range nodes {
-		go RandomCalculationProcessInitiator(node, stop)
+		go func(node *DCP.CtNode) {
+			RandomCalculationProcessInitiator(node, stop)
+		}(node)
 	}
 
 	for {
 		select {
-		case <-done:
+		case <-closeMonitor:
 			close(stop)
 			return
 		}
