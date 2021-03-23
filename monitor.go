@@ -19,10 +19,34 @@ func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}) {
 	}
 	defer ui.Close()
 
-	nodeList := widgets.NewList()
+	w, _ := ui.TerminalDimensions()
+
 	info := createInfoParagraph(0, len(nodes))
+
+	nodeList := widgets.NewList()
 	createList(nodeList, nodes)
-	ui.Render(nodeList)
+
+	actionsList := widgets.NewList()
+	createActionsList(actionsList, nodes)
+
+	tp := widgets.NewTabPane("Runtime data", "Control actions")
+	tp.SetRect(0, 10, w, 13)
+	tp.Border = true
+
+	scrollList := nodeList
+
+	renderTab := func() {
+		switch tp.ActiveTabIndex {
+		case 0:
+			scrollList = nodeList
+			ui.Render(nodeList)
+		case 1:
+			scrollList = actionsList
+			ui.Render(actionsList)
+		}
+	}
+
+	ui.Render(info, tp)
 
 	ticker := time.NewTicker(time.Second).C
 	tickCount := 0
@@ -37,26 +61,34 @@ func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}) {
 					close(done)
 					return
 				case "j", "<Down>":
-					nodeList.ScrollDown()
-					ui.Render(info, nodeList)
+					scrollList.ScrollDown()
+					ui.Render(info, tp)
 				case "k", "<Up>":
-					nodeList.ScrollUp()
-					ui.Render(info, nodeList)
+					scrollList.ScrollUp()
+					ui.Render(info, tp)
+				case "h":
+					tp.FocusLeft()
+					ui.Clear()
+					ui.Render(info, tp)
+					renderTab()
+				case "l":
+					tp.FocusRight()
+					ui.Clear()
+					ui.Render(info, tp)
+					renderTab()
 				}
 			}
 		case <-ticker:
 			info = createInfoParagraph(tickCount, len(nodes))
 			createList(nodeList, nodes)
+			createActionsList(actionsList, nodes)
+			renderTab()
 
-			ui.Render(info, nodeList)
+			ui.Render(info, tp)
 			tickCount++
 		}
 	}
 }
-
-/*func createNodeDisplayListItemRow(node *DCP.CtNode) string {
-	return
-}*/
 
 func createNodeDisplayListItemTable(nodes []*DCP.CtNode) string {
 	var data [][]string
@@ -107,13 +139,39 @@ func createNodeDisplayListItemTable(nodes []*DCP.CtNode) string {
 func createList(list *widgets.List, nodes []*DCP.CtNode) {
 	listItems := createNodeDisplayListItemTable(nodes)
 
-	w, _ := ui.TerminalDimensions()
-
-	list.Title = "Nodes"
 	list.Rows = []string{listItems}
 	list.WrapText = true
-	list.Border = false
-	list.SetRect(0, 10, w, 40)
+	list.Border = true
+
+	w, _ := ui.TerminalDimensions()
+
+	list.SetRect(0, 13, w, 40)
+}
+
+func createActionsList(list *widgets.List, nodes []*DCP.CtNode) {
+	var allRecords []ContributionRecord
+	for _, node := range nodes {
+		allRecords = append(allRecords, ContributionRecord{
+			NodeId:  node.Id,
+			Updates: node.Diagnosis.Control.NodesContributedToUpdates,
+		})
+	}
+
+	var listItems []string
+	for _, record := range allRecords {
+		for co, contribution := range record.Updates {
+			listItems = append(listItems, "NodeId: "+record.NodeId.String()+" -> Id/BranchId ["+co.Id.String()+"/"+co.BranchId.String()+"] Added: "+strconv.Itoa(contribution))
+		}
+	}
+
+	list.Rows = listItems
+	list.WrapText = true
+	list.Border = true
+	list.SelectedRowStyle.Fg = ui.ColorMagenta
+
+	w, _ := ui.TerminalDimensions()
+
+	list.SetRect(0, 13, w, 40)
 }
 
 func createInfoParagraph(tickCount int, nrOfNodes int) *widgets.Paragraph {

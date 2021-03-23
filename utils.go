@@ -1,6 +1,14 @@
 package main
 
-import "github.com/google/uuid"
+import (
+	"github.com/DCP-DCT/DCP"
+	"github.com/google/uuid"
+)
+
+type ContributionRecord struct {
+	NodeId  uuid.UUID
+	Updates map[DCP.ControlEntity]int
+}
 
 func GenerateIdTable(length int) []string {
 	ids := make([]uuid.UUID, length)
