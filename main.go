@@ -13,7 +13,7 @@ func main() {
 
 	temp := os.Stdout
 	os.Stdout = nil
-	runSimulation(9)
+	runSimulation(15)
 	os.Stdout = temp
 }
 
@@ -67,7 +67,7 @@ func runSimulation(numberOfNodes int) {
 	td := 10 * time.Millisecond
 
 	config := DCP.NewCtNodeConfig()
-	config.NodeVisitDecryptThreshold = 2
+	config.NodeVisitDecryptThreshold = 5
 	config.SuppressLogging = true
 	config.Throttle = &td
 
@@ -91,7 +91,13 @@ func runSimulation(numberOfNodes int) {
 	for {
 		select {
 		case <-closeMonitor:
+			e := generateReport(nodes)
+			if e != nil {
+				panic(e)
+			}
+
 			close(stop)
+
 			return
 		}
 	}

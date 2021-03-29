@@ -101,6 +101,8 @@ func createNodeDisplayListItemTable(nodes []*DCP.CtNode) string {
 
 		data = append(data, []string{
 			node.Id.String(),
+			strconv.Itoa(node.Do.Counter),
+			strconv.Itoa(int(node.Do.Plaintext)),
 			strconv.Itoa(node.Co.Counter),
 			cip.String(),
 			strconv.FormatBool(node.IsCalculationProcessRunning()),
@@ -115,8 +117,10 @@ func createNodeDisplayListItemTable(nodes []*DCP.CtNode) string {
 
 	header := []string{
 		"nodeId",
-		"counter",
-		"cipher decr",
+		"do ctr",
+		"do data",
+		"co ctr",
+		"co data",
 		"Calc running",
 		"Updates",
 		"Rejects",
