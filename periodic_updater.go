@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/DCP-DCT/DCP"
-	"github.com/google/uuid"
 	"math/rand"
 	"time"
 )
@@ -14,8 +13,6 @@ import (
 // Will select a number at random {1, 10} and if the number is X then
 // the process will be initiated or else sleep for some period.
 func RandomCalculationProcessInitiator(node *DCP.CtNode, stop chan struct{}) {
-	runningNodes := make(map[uuid.UUID]struct{})
-
 	rand.Seed(time.Now().UnixNano())
 
 	for {
@@ -35,7 +32,6 @@ func RandomCalculationProcessInitiator(node *DCP.CtNode, stop chan struct{}) {
 
 				fmt.Printf("Starting process for node %s\n", node.Id)
 				node.Broadcast(nil)
-				runningNodes[node.Id] = struct{}{}
 
 				return
 			}

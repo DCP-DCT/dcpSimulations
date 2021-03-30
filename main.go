@@ -3,18 +3,36 @@ package main
 import (
 	"fmt"
 	"github.com/DCP-DCT/DCP"
+	"log"
 	"math/rand"
 	"os"
+	"path/filepath"
+	"strconv"
+	"syscall"
 	"time"
 )
 
 func main() {
 	//benchmarkEncryption(50)
+	fName := "dcp-sim-error-log-" + strconv.Itoa(int(time.Now().UnixNano())) + ".txt"
+	fp := filepath.Join("log", fName)
+	f, err := os.OpenFile(fp, os.O_RDWR|os.O_CREATE, 0664)
+	if err != nil {
+		panic(err.Error())
+	}
 
-	temp := os.Stdout
-	os.Stdout = nil
-	runSimulation(15)
-	os.Stdout = temp
+	defer f.Close()
+
+	redirectStderr(f)
+
+	runSimulation(40)
+}
+
+func redirectStderr(f *os.File) {
+	err := syscall.Dup2(int(f.Fd()), int(os.Stderr.Fd()))
+	if err != nil {
+		log.Fatalf("Failed to redirect stderr to file: %v", err)
+	}
 }
 
 func createNodes(numberOfNodes int, config *DCP.CtNodeConfig) []*DCP.CtNode {

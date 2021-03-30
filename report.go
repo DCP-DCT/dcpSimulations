@@ -10,14 +10,14 @@ import (
 )
 
 func generateReport(nodes []*DCP.CtNode) error {
-	fName := "dcp-sim-result-" + strconv.Itoa(int(time.Now().UnixNano())) + ".json"
+	fName := "dcp-sim-report-" + strconv.Itoa(int(time.Now().UnixNano())) + ".json"
 
 	b, e := json.Marshal(nodes)
 	if e != nil {
 		return e
 	}
 
-	fp := filepath.Join("results", fName)
+	fp := filepath.Join("reports", fName)
 
 	e = ioutil.WriteFile(fp, b, 0644)
 	if e != nil {

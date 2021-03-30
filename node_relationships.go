@@ -77,3 +77,7 @@ func EstablishNodeRelationShipAllInRange(nodes []*DCP.CtNode) {
 		}
 	}
 }
+
+// Mesh topology
+
+// Free create, more tails
