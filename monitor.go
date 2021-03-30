@@ -10,10 +10,11 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
-func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}) {
+func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}, lock1 *sync.RWMutex) {
 	if err := ui.Init(); err != nil {
 		log.Fatal("Could not initialize monitor")
 	}
@@ -24,10 +25,7 @@ func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}) {
 	info := createInfoParagraph(0, len(nodes))
 
 	nodeList := widgets.NewList()
-	createList(nodeList, nodes)
-
 	actionsList := widgets.NewList()
-	createActionsList(actionsList, nodes)
 
 	tp := widgets.NewTabPane("Runtime data", "Control actions")
 	tp.SetRect(0, 10, w, 13)
@@ -51,6 +49,7 @@ func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}) {
 	ticker := time.NewTicker(time.Second).C
 	tickCount := 0
 	uiEvents := ui.PollEvents()
+
 	for {
 		select {
 		case e := <-uiEvents:
@@ -79,9 +78,11 @@ func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}) {
 				}
 			}
 		case <-ticker:
-			info = createInfoParagraph(tickCount, len(nodes))
-			createList(nodeList, nodes)
-			createActionsList(actionsList, nodes)
+			nodeCpy := nodes
+
+			info = createInfoParagraph(tickCount, len(nodeCpy))
+			createList(nodeList, nodeCpy)
+			createActionsList(actionsList, nodeCpy, lock1)
 			renderTab()
 
 			ui.Render(info, tp)
@@ -152,20 +153,27 @@ func createList(list *widgets.List, nodes []*DCP.CtNode) {
 	list.SetRect(0, 13, w, 40)
 }
 
-func createActionsList(list *widgets.List, nodes []*DCP.CtNode) {
-	var allRecords []ContributionRecord
+func createActionsList(list *widgets.List, nodes []*DCP.CtNode, mux *sync.RWMutex) {
+	// CAUSES fatal error: concurrent map iteration and map write
+	// Mutex did not solve anything
+
+	/*var allRecords []ContributionRecord
 	for _, node := range nodes {
+		mux.Lock()
 		allRecords = append(allRecords, ContributionRecord{
 			NodeId:  node.Id,
 			Updates: node.Diagnosis.Control.NodesContributedToUpdates,
 		})
+		mux.Unlock()
 	}
 
 	var listItems []string
 	for _, record := range allRecords {
+		mux.RLock()
 		for co, contribution := range record.Updates {
 			listItems = append(listItems, "NodeId: "+record.NodeId.String()+" -> Id/BranchId ["+co.Id.String()+"/"+co.BranchId.String()+"] Added: "+strconv.Itoa(contribution))
 		}
+		mux.RUnlock()
 	}
 
 	list.Rows = listItems
@@ -175,7 +183,9 @@ func createActionsList(list *widgets.List, nodes []*DCP.CtNode) {
 
 	w, _ := ui.TerminalDimensions()
 
-	list.SetRect(0, 13, w, 40)
+	list.SetRect(0, 13, w, 40)*/
+
+	return
 }
 
 func createInfoParagraph(tickCount int, nrOfNodes int) *widgets.Paragraph {

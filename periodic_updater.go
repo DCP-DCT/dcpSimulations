@@ -41,4 +41,15 @@ func RandomCalculationProcessInitiator(node *DCP.CtNode, stop chan struct{}) {
 	}
 }
 
-func RandomReachableNodeShuffler(node *DCP.CtNode, stop chan struct{}) {}
+func CalculationProcessInitiator(node *DCP.CtNode) {
+	e := DCP.InitRoutine(DCP.PrepareIdLenCalculation, node)
+	if e != nil {
+		fmt.Println(e)
+		return
+	}
+
+	fmt.Printf("Starting process for node %s\n", node.Id)
+	node.Broadcast(nil)
+
+	return
+}

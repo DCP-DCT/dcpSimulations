@@ -78,6 +78,45 @@ func EstablishNodeRelationShipAllInRange(nodes []*DCP.CtNode) {
 	}
 }
 
+func EstablishNodeRelationshipsLocalClusters(nodes []*DCP.CtNode, maxSizeCluster int) {
+	var clusters [][]*DCP.CtNode
+	offset := 0
+	for {
+		if (offset + maxSizeCluster) < len(nodes) {
+			cluster := nodes[offset : offset+maxSizeCluster]
+			clusters = append(clusters, cluster)
+			offset = offset + maxSizeCluster
+		} else {
+			cluster := nodes[offset:]
+			clusters = append(clusters, cluster)
+			break
+		}
+	}
+
+	for i, cluster := range clusters {
+		clusterTransportLayers := make(map[chan []byte]chan struct{})
+		for _, node := range cluster {
+			clusterTransportLayers[node.TransportLayer.DataCh] = node.TransportLayer.StopCh
+		}
+
+		for j, node := range cluster {
+			for k, v := range clusterTransportLayers {
+				if k != node.TransportLayer.DataCh {
+					node.TransportLayer.ReachableNodes[k] = v
+				}
+			}
+
+			// Last node in cluster, assign link to first node in next cluster
+			if j == len(cluster)-1 {
+				if i + 1 <= len(clusters) - 1 {
+					firstNodeNextCluster := clusters[i+1][0]
+					node.TransportLayer.ReachableNodes[firstNodeNextCluster.TransportLayer.DataCh] = firstNodeNextCluster.TransportLayer.StopCh
+				}
+			}
+		}
+	}
+}
+
 // Mesh topology
 
 // Free create, more tails

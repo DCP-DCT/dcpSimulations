@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -25,7 +26,7 @@ func main() {
 
 	redirectStderr(f)
 
-	runSimulation(40)
+	runSimulation(40, true, true)
 }
 
 func redirectStderr(f *os.File) {
@@ -81,8 +82,9 @@ func benchmarkEncryption(numberOfNodes int) {
 	fmt.Printf("Initial Node Counter %d, Node Cipher %s\n", initialNode.Co.Counter, msg.String())
 }
 
-func runSimulation(numberOfNodes int) {
+func runSimulation(numberOfNodes int, randomStart bool, cluster bool) {
 	td := 10 * time.Millisecond
+	clusterSize := 8
 
 	config := DCP.NewCtNodeConfig()
 	config.NodeVisitDecryptThreshold = 5
@@ -90,20 +92,33 @@ func runSimulation(numberOfNodes int) {
 	config.Throttle = &td
 
 	nodes := createNodes(numberOfNodes, config)
-	EstablishNodeRelationShipAllInRange(nodes)
+
+	if cluster {
+		EstablishNodeRelationshipsLocalClusters(nodes, clusterSize)
+	} else {
+		EstablishNodeRelationShipAllInRange(nodes)
+	}
 
 	for _, node := range nodes {
 		node.Listen()
 	}
 
+	lock1 := &sync.RWMutex{}
+
 	closeMonitor := make(chan struct{})
-	go LaunchMonitor(nodes, closeMonitor)
+	go LaunchMonitor(nodes, closeMonitor, lock1)
 
 	stop := make(chan struct{})
 	for _, node := range nodes {
-		go func(node *DCP.CtNode) {
-			RandomCalculationProcessInitiator(node, stop)
-		}(node)
+		if randomStart {
+			go func(node *DCP.CtNode) {
+				RandomCalculationProcessInitiator(node, stop)
+			}(node)
+		} else {
+			go func(node *DCP.CtNode) {
+				CalculationProcessInitiator(node)
+			}(node)
+		}
 	}
 
 	for {
