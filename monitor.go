@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}, lock1 *sync.RWMutex) {
+func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}, lock1 *sync.RWMutex, onlyEvents bool) {
 	if err := ui.Init(); err != nil {
 		log.Fatal("Could not initialize monitor")
 	}
@@ -81,11 +81,16 @@ func LaunchMonitor(nodes []*DCP.CtNode, done chan struct{}, lock1 *sync.RWMutex)
 			nodeCpy := nodes
 
 			info = createInfoParagraph(tickCount, len(nodeCpy))
-			createList(nodeList, nodeCpy)
-			createActionsList(actionsList, nodeCpy, lock1)
-			renderTab()
 
-			ui.Render(info, tp)
+			if !onlyEvents {
+				createList(nodeList, nodeCpy)
+				createActionsList(actionsList, nodeCpy, lock1)
+				renderTab()
+				ui.Render(info, tp)
+			} else {
+				ui.Render(info)
+			}
+
 			tickCount++
 		}
 	}
@@ -106,7 +111,7 @@ func createNodeDisplayListItemTable(nodes []*DCP.CtNode) string {
 			strconv.Itoa(int(node.Do.Plaintext)),
 			strconv.Itoa(node.Co.Counter),
 			cip.String(),
-			strconv.FormatBool(node.IsCalculationProcessRunning()),
+			strconv.FormatBool(node.ProcessRunning),
 			strconv.Itoa(node.Diagnosis.NumberOfUpdates),
 			strconv.Itoa(node.Diagnosis.NumberOfRejectedDueToThreshold),
 			strconv.Itoa(node.Diagnosis.NumberOfBroadcasts),

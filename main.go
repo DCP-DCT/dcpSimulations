@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"syscall"
@@ -26,7 +27,9 @@ func main() {
 
 	redirectStderr(f)
 
-	runSimulation(40, true, true)
+	//os.Stdout = os.Stderr
+	os.Stdout = nil
+	runSimulation(100, false, false)
 }
 
 func redirectStderr(f *os.File) {
@@ -36,12 +39,12 @@ func redirectStderr(f *os.File) {
 	}
 }
 
-func createNodes(numberOfNodes int, config *DCP.CtNodeConfig) []*DCP.CtNode {
+func createNodes(numberOfNodes int, config DCP.CtNodeConfig) []*DCP.CtNode {
 	var nodes []*DCP.CtNode
 	rand.Seed(time.Now().UnixNano())
 
 	for i := 0; i < numberOfNodes; i++ {
-		node := DCP.NewCtNode(GenerateIdTable(rand.Intn(25)), config)
+		node := DCP.NewCtNode(GenerateIdTable(rand.Intn(25-1)+1), config)
 
 		e := node.Co.KeyGen()
 		if e != nil {
@@ -55,41 +58,15 @@ func createNodes(numberOfNodes int, config *DCP.CtNodeConfig) []*DCP.CtNode {
 	return nodes
 }
 
-func benchmarkEncryption(numberOfNodes int) {
-	config := &DCP.CtNodeConfig{
-		NodeVisitDecryptThreshold: 5,
-	}
-
-	nodes := createNodes(numberOfNodes, config)
-
-	for _, node := range nodes {
-		node.Listen()
-	}
-
-	initialNode := nodes[0]
-	EstablishNodeRelationShipAllInRange(nodes)
-
-	e := DCP.InitRoutine(DCP.PrepareIdLenCalculation, initialNode)
-	if e != nil {
-		fmt.Println(e)
-	}
-
-	initialNode.Broadcast(nil)
-
-	time.Sleep(10 * time.Second)
-	msg := initialNode.Co.Decrypt(initialNode.Co.Cipher)
-
-	fmt.Printf("Initial Node Counter %d, Node Cipher %s\n", initialNode.Co.Counter, msg.String())
-}
-
 func runSimulation(numberOfNodes int, randomStart bool, cluster bool) {
-	td := 10 * time.Millisecond
-	clusterSize := 8
+	td := 1 * time.Millisecond
+	clusterSize := 3
 
 	config := DCP.NewCtNodeConfig()
-	config.NodeVisitDecryptThreshold = 5
-	config.SuppressLogging = true
+	config.NodeVisitDecryptThreshold = 3
+	config.SuppressLogging = false
 	config.Throttle = &td
+	config.CoTTL = 10
 
 	nodes := createNodes(numberOfNodes, config)
 
@@ -99,17 +76,15 @@ func runSimulation(numberOfNodes int, randomStart bool, cluster bool) {
 		EstablishNodeRelationShipAllInRange(nodes)
 	}
 
-	for _, node := range nodes {
-		node.Listen()
-	}
-
 	lock1 := &sync.RWMutex{}
 
 	closeMonitor := make(chan struct{})
-	go LaunchMonitor(nodes, closeMonitor, lock1)
+	go LaunchMonitor(nodes, closeMonitor, lock1, true)
 
 	stop := make(chan struct{})
 	for _, node := range nodes {
+		node.Listen()
+
 		if randomStart {
 			go func(node *DCP.CtNode) {
 				RandomCalculationProcessInitiator(node, stop)
@@ -124,7 +99,7 @@ func runSimulation(numberOfNodes int, randomStart bool, cluster bool) {
 	for {
 		select {
 		case <-closeMonitor:
-			e := generateReport(nodes)
+			e := generateReport(nodes, cluster)
 			if e != nil {
 				panic(e)
 			}
@@ -132,6 +107,10 @@ func runSimulation(numberOfNodes int, randomStart bool, cluster bool) {
 			close(stop)
 
 			return
+		default:
+			nGoR := runtime.NumGoroutine()
+			nBranches := DCP.GetNrOfActiveBranches()
+			fmt.Println(nGoR, nBranches)
 		}
 	}
 }

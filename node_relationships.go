@@ -53,20 +53,20 @@ func EstablishNodeRelationships(nodes []*DCP.CtNode, initialNode *DCP.CtNode) {
 				continue
 			}
 
-			current.TransportLayer.ReachableNodes[reachableNode.TransportLayer.DataCh] = reachableNode.TransportLayer.StopCh
+			current.TransportLayer.ReachableNodes[reachableNode.TransportLayer.DataCh] = struct{}{}
 		}
 	}
 
 	// ensure last node has a connection back to initial node
 	if _, exists := nodes[len(nodes)-1].TransportLayer.ReachableNodes[initialNode.TransportLayer.DataCh]; !exists {
-		nodes[len(nodes)-1].TransportLayer.ReachableNodes[initialNode.TransportLayer.DataCh] = initialNode.TransportLayer.StopCh
+		nodes[len(nodes)-1].TransportLayer.ReachableNodes[initialNode.TransportLayer.DataCh] = struct{}{}
 	}
 }
 
 func EstablishNodeRelationShipAllInRange(nodes []*DCP.CtNode) {
-	allTransportLayers := make(map[chan []byte]chan struct{})
+	allTransportLayers := make(map[chan []byte]struct{})
 	for _, node := range nodes {
-		allTransportLayers[node.TransportLayer.DataCh] = node.TransportLayer.StopCh
+		allTransportLayers[node.TransportLayer.DataCh] = struct{}{}
 	}
 
 	for _, node := range nodes {
@@ -94,9 +94,9 @@ func EstablishNodeRelationshipsLocalClusters(nodes []*DCP.CtNode, maxSizeCluster
 	}
 
 	for i, cluster := range clusters {
-		clusterTransportLayers := make(map[chan []byte]chan struct{})
+		clusterTransportLayers := make(map[chan []byte]struct{})
 		for _, node := range cluster {
-			clusterTransportLayers[node.TransportLayer.DataCh] = node.TransportLayer.StopCh
+			clusterTransportLayers[node.TransportLayer.DataCh] = struct{}{}
 		}
 
 		for j, node := range cluster {
@@ -108,9 +108,9 @@ func EstablishNodeRelationshipsLocalClusters(nodes []*DCP.CtNode, maxSizeCluster
 
 			// Last node in cluster, assign link to first node in next cluster
 			if j == len(cluster)-1 {
-				if i + 1 <= len(clusters) - 1 {
+				if i+1 <= len(clusters)-1 {
 					firstNodeNextCluster := clusters[i+1][0]
-					node.TransportLayer.ReachableNodes[firstNodeNextCluster.TransportLayer.DataCh] = firstNodeNextCluster.TransportLayer.StopCh
+					node.TransportLayer.ReachableNodes[firstNodeNextCluster.TransportLayer.DataCh] = struct{}{}
 				}
 			}
 		}

@@ -50,6 +50,4 @@ func CalculationProcessInitiator(node *DCP.CtNode) {
 
 	fmt.Printf("Starting process for node %s\n", node.Id)
 	node.Broadcast(nil)
-
-	return
 }
