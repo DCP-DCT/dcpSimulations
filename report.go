@@ -9,16 +9,12 @@ import (
 	"time"
 )
 
-func generateReport(nodes []*DCP.CtNode, cluster bool) error {
-	topologyIndicator := ""
-	if cluster {
-		topologyIndicator = "cluster-"
-	}
+func generateReport(nodes []*DCP.CtNode, info RunConfig) error {
 
-	fName := "dcp-sim-report-" + topologyIndicator + strconv.Itoa(int(time.Now().UnixNano())) + ".json"
+	fName := "dcp-report-" + info.RunDescription + "-" + strconv.Itoa(int(time.Now().UnixNano())) + ".json"
 
-	// Program riddled with race read/writes so just wait and hope they all finish before marshal
-	time.Sleep(500 * time.Millisecond)
+	// Program riddled with read/writes races so just wait and hope they all finish before processing maps
+	time.Sleep(20 * time.Second)
 
 	b, e := json.Marshal(nodes)
 	if e != nil {

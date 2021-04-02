@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/DCP-DCT/DCP"
+	"github.com/ivpusic/grpool"
 	"log"
 	"math/rand"
 	"os"
@@ -15,7 +16,6 @@ import (
 )
 
 func main() {
-	//benchmarkEncryption(50)
 	fName := "dcp-sim-error-log-" + strconv.Itoa(int(time.Now().UnixNano())) + ".txt"
 	fp := filepath.Join("log", fName)
 	f, err := os.OpenFile(fp, os.O_RDWR|os.O_CREATE, 0664)
@@ -27,9 +27,36 @@ func main() {
 
 	redirectStderr(f)
 
+	if len(os.Args) < 3 {
+		fmt.Println("Program require an arg in set [1, " + strconv.Itoa(NrOfAvailableRuns) + "] and a duration in seconds")
+		return
+	}
+
+	runNr, e := strconv.Atoi(os.Args[1])
+	if e != nil {
+		fmt.Println("Run nr not an integer")
+		return
+	}
+
+	runDuration, e := strconv.Atoi(os.Args[2])
+	if e != nil {
+		fmt.Println("Timer duration not an integer")
+		return
+	}
+
+	if runNr < 1 || runNr > NrOfAvailableRuns {
+		fmt.Println("Argument must be in set [1, " + strconv.Itoa(NrOfAvailableRuns) + "]")
+		return
+	}
+
 	//os.Stdout = os.Stderr
 	os.Stdout = nil
-	runSimulation(100, false, false)
+
+	rc := RunCaller{}
+	runConfig := rc.GetRunConfig(runNr)
+
+	startTime := time.Now()
+	runSimulation(runConfig, startTime, runDuration)
 }
 
 func redirectStderr(f *os.File) {
@@ -39,12 +66,12 @@ func redirectStderr(f *os.File) {
 	}
 }
 
-func createNodes(numberOfNodes int, config DCP.CtNodeConfig) []*DCP.CtNode {
+func createNodes(numberOfNodes int, config DCP.CtNodeConfig, poolPtr *grpool.Pool) []*DCP.CtNode {
 	var nodes []*DCP.CtNode
 	rand.Seed(time.Now().UnixNano())
 
 	for i := 0; i < numberOfNodes; i++ {
-		node := DCP.NewCtNode(GenerateIdTable(rand.Intn(25-1)+1), config)
+		node := DCP.NewCtNode(GenerateIdTable(rand.Intn(25-1)+1), config, poolPtr)
 
 		e := node.Co.KeyGen()
 		if e != nil {
@@ -58,20 +85,23 @@ func createNodes(numberOfNodes int, config DCP.CtNodeConfig) []*DCP.CtNode {
 	return nodes
 }
 
-func runSimulation(numberOfNodes int, randomStart bool, cluster bool) {
-	td := 1 * time.Millisecond
-	clusterSize := 3
-
+func runSimulation(runConfig RunConfig, startTime time.Time, runTime int) {
 	config := DCP.NewCtNodeConfig()
-	config.NodeVisitDecryptThreshold = 3
+	config.NodeVisitDecryptThreshold = runConfig.DecryptThreshold
+	config.Throttle = &runConfig.Latency
+	config.CoTTL = runConfig.TTL
+
+	// Non-run specific config
+	config.IncludeHistory = false
 	config.SuppressLogging = false
-	config.Throttle = &td
-	config.CoTTL = 10
 
-	nodes := createNodes(numberOfNodes, config)
+	pool := grpool.NewPool(10000, 100)
+	defer pool.Release()
 
-	if cluster {
-		EstablishNodeRelationshipsLocalClusters(nodes, clusterSize)
+	nodes := createNodes(runConfig.NrOfNodes, config, pool)
+
+	if runConfig.Topology == Cluster {
+		EstablishNodeRelationshipsLocalClusters(nodes, *runConfig.ClusterSize)
 	} else {
 		EstablishNodeRelationShipAllInRange(nodes)
 	}
@@ -81,33 +111,30 @@ func runSimulation(numberOfNodes int, randomStart bool, cluster bool) {
 	closeMonitor := make(chan struct{})
 	go LaunchMonitor(nodes, closeMonitor, lock1, true)
 
-	stop := make(chan struct{})
 	for _, node := range nodes {
 		node.Listen()
 
-		if randomStart {
-			go func(node *DCP.CtNode) {
-				RandomCalculationProcessInitiator(node, stop)
-			}(node)
-		} else {
-			go func(node *DCP.CtNode) {
-				CalculationProcessInitiator(node)
-			}(node)
-		}
+		go func(node *DCP.CtNode) {
+			CalculationProcessInitiator(node)
+		}(node)
 	}
 
 	for {
 		select {
 		case <-closeMonitor:
-			e := generateReport(nodes, cluster)
+			e := generateReport(nodes, runConfig)
 			if e != nil {
 				panic(e)
 			}
 
-			close(stop)
-
 			return
 		default:
+			timeNow := time.Now()
+
+			if timeNow.Sub(startTime).Seconds() > float64(runTime) {
+				close(closeMonitor)
+			}
+
 			nGoR := runtime.NumGoroutine()
 			nBranches := DCP.GetNrOfActiveBranches()
 			fmt.Println(nGoR, nBranches)

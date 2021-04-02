@@ -106,10 +106,13 @@ func EstablishNodeRelationshipsLocalClusters(nodes []*DCP.CtNode, maxSizeCluster
 				}
 			}
 
-			// Last node in cluster, assign link to first node in next cluster
+			// Last node in cluster, assign link to first node in next cluster, bi-directional
 			if j == len(cluster)-1 {
 				if i+1 <= len(clusters)-1 {
 					firstNodeNextCluster := clusters[i+1][0]
+
+					firstNodeNextCluster.TransportLayer.ReachableNodes[node.TransportLayer.DataCh] = struct{}{}
+
 					node.TransportLayer.ReachableNodes[firstNodeNextCluster.TransportLayer.DataCh] = struct{}{}
 				}
 			}
