@@ -14,7 +14,7 @@ func generateReport(nodes []*DCP.CtNode, info RunConfig) error {
 	fName := "dcp-report-" + info.RunDescription + "-" + strconv.Itoa(int(time.Now().UnixNano())) + ".json"
 
 	// Program riddled with read/writes races so just wait and hope they all finish before processing maps
-	time.Sleep(20 * time.Second)
+	time.Sleep(60 * time.Second)
 
 	b, e := json.Marshal(nodes)
 	if e != nil {
