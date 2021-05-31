@@ -112,8 +112,10 @@ func EstablishNodeRelationshipsLocalClusters(nodes []*DCP.CtNode, maxSizeCluster
 					firstNodeNextCluster := clusters[i+1][0]
 
 					firstNodeNextCluster.TransportLayer.ReachableNodes[node.TransportLayer.DataCh] = struct{}{}
-
 					node.TransportLayer.ReachableNodes[firstNodeNextCluster.TransportLayer.DataCh] = struct{}{}
+
+					firstNodeNextCluster.BridgeNode = true
+					node.BridgeNode = true
 				}
 			}
 		}

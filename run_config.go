@@ -10,11 +10,12 @@ const (
 )
 
 type RunConfig struct {
-	RunDescription   string
-	NrOfNodes        int
-	Latency          time.Duration
-	DecryptThreshold int
-	TTL              int
-	Topology         Topology
-	ClusterSize      *int
+	RunDescription        string
+	NrOfNodes             int
+	Latency               time.Duration
+	DecryptThreshold      int
+	TTL                   int
+	Topology              Topology
+	ClusterSize           *int
+	DropAfterNrDuplicates int
 }

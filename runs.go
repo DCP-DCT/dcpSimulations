@@ -1,8 +1,10 @@
 package main
 
-const NrOfAvailableRuns = 23
+const NrOfAvailableRuns = 25
 
 type RunCaller struct{}
+
+var ClusterSize = 8
 
 func (rc RunCaller) GetRunConfig(nr int) RunConfig {
 	switch nr {
@@ -26,6 +28,10 @@ func (rc RunCaller) GetRunConfig(nr int) RunConfig {
 		return Run9()
 	case 10:
 		return Run10()
+	case 24:
+		return Run24()
+	case 25:
+		return Run25()
 	case 11:
 		return Run11()
 	case 12:
@@ -61,12 +67,13 @@ func (rc RunCaller) GetRunConfig(nr int) RunConfig {
 func Run1() RunConfig {
 	return RunConfig{
 		RunDescription:   "1",
-		NrOfNodes:        25,
+		NrOfNodes:        100,
 		Latency:          30,
 		DecryptThreshold: 3,
-		TTL:              10,
-		Topology:         All,
-		ClusterSize:      nil,
+		TTL:              6,
+		Topology:         Cluster,
+		ClusterSize:      &ClusterSize,
+		DropAfterNrDuplicates: 1,
 	}
 }
 
@@ -75,22 +82,24 @@ func Run2() RunConfig {
 		RunDescription:   "2",
 		NrOfNodes:        100,
 		Latency:          30,
-		DecryptThreshold: 3,
-		TTL:              10,
-		Topology:         All,
-		ClusterSize:      nil,
+		DecryptThreshold: 4,
+		TTL:              6,
+		Topology:         Cluster,
+		ClusterSize:      &ClusterSize,
+		DropAfterNrDuplicates: 2,
 	}
 }
 
 func Run3() RunConfig {
 	return RunConfig{
 		RunDescription:   "3",
-		NrOfNodes:        25,
+		NrOfNodes:        100,
 		Latency:          30,
-		DecryptThreshold: 6,
-		TTL:              10,
-		Topology:         All,
-		ClusterSize:      nil,
+		DecryptThreshold: 5,
+		TTL:              9,
+		Topology:         Cluster,
+		ClusterSize:      &ClusterSize,
+		DropAfterNrDuplicates: 4,
 	}
 }
 
@@ -100,9 +109,10 @@ func Run4() RunConfig {
 		NrOfNodes:        100,
 		Latency:          30,
 		DecryptThreshold: 6,
-		TTL:              10,
-		Topology:         All,
-		ClusterSize:      nil,
+		TTL:              60,
+		Topology:         Cluster,
+		ClusterSize:      &ClusterSize,
+		DropAfterNrDuplicates: 60,
 	}
 }
 
@@ -115,6 +125,7 @@ func Run5() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -127,6 +138,7 @@ func Run6() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -134,52 +146,89 @@ func Run6() RunConfig {
 
 // #####EFFICIENCY RUNS#####
 func Run7() RunConfig {
+	cs := 8
 	return RunConfig{
 		RunDescription:   "7",
-		NrOfNodes:        25,
+		NrOfNodes:        100,
 		Latency:          30,
 		DecryptThreshold: 3,
-		TTL:              6,
-		Topology:         All,
-		ClusterSize:      nil,
+		TTL:              3,
+		Topology:         Cluster,
+		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
 func Run8() RunConfig {
+	cs := 8
 	return RunConfig{
 		RunDescription:   "8",
 		NrOfNodes:        100,
 		Latency:          30,
 		DecryptThreshold: 3,
 		TTL:              6,
-		Topology:         All,
-		ClusterSize:      nil,
+		Topology:         Cluster,
+		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
 func Run9() RunConfig {
+	cs := 8
 	return RunConfig{
 		RunDescription:   "9",
-		NrOfNodes:        25,
+		NrOfNodes:        100,
 		Latency:          30,
 		DecryptThreshold: 3,
-		TTL:              12,
-		Topology:         All,
-		ClusterSize:      nil,
+		TTL:              9,
+		Topology:         Cluster,
+		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
 func Run10() RunConfig {
+	cs := 8
 	return RunConfig{
 		RunDescription:   "10",
 		NrOfNodes:        100,
 		Latency:          30,
 		DecryptThreshold: 3,
 		TTL:              12,
-		Topology:         All,
-		ClusterSize:      nil,
+		Topology:         Cluster,
+		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
+
+func Run24() RunConfig {
+	cs := 8
+	return RunConfig{
+		RunDescription:   "24",
+		NrOfNodes:        100,
+		Latency:          30,
+		DecryptThreshold: 3,
+		TTL:              15,
+		Topology:         Cluster,
+		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
+	}
+}
+
+func Run25() RunConfig {
+	cs := 8
+	return RunConfig{
+		RunDescription:   "25",
+		NrOfNodes:        100,
+		Latency:          30,
+		DecryptThreshold: 3,
+		TTL:              18,
+		Topology:         Cluster,
+		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
+	}
+}
+
 // #####END EFFICIENCY RUNS#####
 
 // #####COMPLEXITY RUNS#####
@@ -192,6 +241,7 @@ func Run11() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -204,6 +254,7 @@ func Run12() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -216,6 +267,7 @@ func Run13() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -228,6 +280,7 @@ func Run23() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -240,6 +293,7 @@ func Run14() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -253,6 +307,7 @@ func Run15() RunConfig {
 		TTL:              10,
 		Topology:         Cluster,
 		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -266,6 +321,7 @@ func Run16() RunConfig {
 		TTL:              10,
 		Topology:         Cluster,
 		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -279,6 +335,7 @@ func Run17() RunConfig {
 		TTL:              10,
 		Topology:         Cluster,
 		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -292,6 +349,7 @@ func Run18() RunConfig {
 		TTL:              10,
 		Topology:         Cluster,
 		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -304,6 +362,7 @@ func Run19() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -316,6 +375,7 @@ func Run20() RunConfig {
 		TTL:              10,
 		Topology:         All,
 		ClusterSize:      nil,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -329,6 +389,7 @@ func Run21() RunConfig {
 		TTL:              10,
 		Topology:         Cluster,
 		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
 
@@ -342,7 +403,8 @@ func Run22() RunConfig {
 		TTL:              10,
 		Topology:         Cluster,
 		ClusterSize:      &cs,
+		DropAfterNrDuplicates: -1,
 	}
 }
-// #####ENDCOMPLEXITY RUNS#####
 
+// #####ENDCOMPLEXITY RUNS#####

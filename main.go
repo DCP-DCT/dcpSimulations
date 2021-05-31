@@ -90,6 +90,7 @@ func runSimulation(runConfig RunConfig, startTime time.Time, runTime int) {
 	config.NodeVisitDecryptThreshold = runConfig.DecryptThreshold
 	config.Throttle = &runConfig.Latency
 	config.CoTTL = runConfig.TTL
+	config.DropHandledAfter = runConfig.DropAfterNrDuplicates
 
 	// Non-run specific config
 	config.IncludeHistory = false
